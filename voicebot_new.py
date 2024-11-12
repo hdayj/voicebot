@@ -13,19 +13,16 @@ from gtts import gTTS
 # 음원 파일 재생을 위한 패키지 추가
 import base64
 
-import dotenv
 
 ##### 기능 구현 함수 #####
-
-
-def STT(audio):
+def STT(audio, api_key):
     # 파일 저장
     filename = 'input.mp3'
     audio.export(filename, format="mp3")
     # 음원 파일 열기
     audio_file = open(filename, "rb")
     # 새로운 OpenAI API 구조 적용
-    client = openai.OpenAI()
+    client = openai.OpenAI(api_key=api_key)
     transcript = client.audio.transcriptions.create(
         model="whisper-1",
         file=audio_file
@@ -36,8 +33,8 @@ def STT(audio):
     return transcript.text
 
 
-def ask_gpt(prompt, model):
-    client = openai.OpenAI()
+def ask_gpt(prompt, model, api_key):
+    client = openai.OpenAI(api_key=api_key)
     response = client.chat.completions.create(
         model=model,
         messages=prompt
@@ -68,7 +65,6 @@ def TTS(response):
 
 
 def main():
-    dotenv.load_dotenv()
 
     # 기본 설정
     st.set_page_config(
@@ -108,8 +104,8 @@ def main():
     with st.sidebar:
 
         # Open AI API 키 입력받기
-        openai.api_key = st.text_input(
-            label="OPENAI API 키", placeholder="Enter Your API Key", value=os.getenv("OPENAI_API_KEY"), type="password")
+        api_key = st.text_input(
+            label="OPENAI API 키", placeholder="Enter Your API Key", value="", type="password")
 
         st.markdown("---")
 
@@ -138,7 +134,7 @@ def main():
             # 음성 재생
             st.audio(audio.export().read())
             # 음원 파일에서 텍스트 추출
-            question = STT(audio)
+            question = STT(audio, api_key)
 
             # 채팅을 시각화하기 위해 질문 내용 저장
             now = datetime.now().strftime("%H:%M")
@@ -153,7 +149,7 @@ def main():
         st.subheader("질문/답변")
         if (audio.duration_seconds > 0) and (st.session_state["check_reset"] == False):
             # ChatGPT에게 답변 얻기
-            response = ask_gpt(st.session_state["messages"], model)
+            response = ask_gpt(st.session_state["messages"], model, api_key)
 
             # GPT 모델에 넣을 프롬프트를 위해 답변 내용 저장
             st.session_state["messages"] = st.session_state["messages"] + \
